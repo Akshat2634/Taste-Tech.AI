@@ -1,7 +1,8 @@
 import streamlit as st
 import openai
 import os
-from streamlit_chat import message
+import requests
+from streamlit_lottie import st_lottie
 
 # Set OpenAI API key
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -79,47 +80,86 @@ def collect_messages(prompt):
 
 def main():
     st.set_page_config(
-        page_title="Order Bot!", page_icon=":shallow_pan_of_food:", layout="wide"
+        page_title="Order Bot!",
+        page_icon=":shallow_pan_of_food:",
+        layout="wide",
     )
 
     with st.container():
-        st.header("Welcome! I am Groovy:wave:")
-        st.subheader("Order and Eat Delicious Food!")
+        left_column, right_column = st.columns([2, 1])
+
+        # Load Assets
+        def load_lottieURL(url):
+            r = requests.get(url)
+            if r.status_code != 200:
+                return None
+            return r.json()
+
+        lottie_coding = load_lottieURL(
+            "https://lottie.host/93e5d938-fe5d-4777-afb9-94afc06b707d/UIyeVl4SRj.json"
+        )
+
+        with left_column:
+            st.header("Welcome! I am Groovy :wave:")
+            st.subheader("Order and Eat Delicious Food!")
+            # Display default greeting
+            st.write(default_greeting)
+
+        with right_column:
+            st_lottie(lottie_coding, height=150, key="food")
         st.write("---")
-        # Display default greeting
-        st.write(default_greeting)
 
         # User Input Form
-        user_input = st.text_input(
-            "User Input:",
-            value="",
-            help="Place your order with OrderBot...",
-            key="user_input",
-        )
+        with st.form("order_form"):
+            user_input = st.text_input(
+                "User Input:",
+                value="",
+                help="Place your order with OrderBot...",
+                key="user_input",
+            )
 
-        st.markdown(
-            """<style>
-            .css-1g6m9li {
-                background-color: #f2f2f2; /* Light gray background */
-                border: 1px solid #ccc; /* Gray border */
+            # Collect and display messages on form submit
+            submit_button = st.form_submit_button("Submit")
+
+            # Trigger form submit on Enter key press
+            st.markdown(
+                """
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        document.querySelector('input[data-baseweb="input"]').addEventListener('keyup', function(event) {
+                            if (event.key === "Enter") {
+                                document.querySelector('button[data-testid="stFormSubmit"]').click();
+                            }
+                        });
+                    });
+                </script>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            st.markdown(
+                """<style>
+            .user-message {
+                background-color: #21618C; 
+                padding: 10px;
+                border-radius: 10px;
+                margin: 10px 0;
+                max-width: 80%;
+                align-self: flex-end;
+            }
+            .assistant-message {
+                background-color: #148F77; 
+                padding: 10px;
+                border-radius: 10px;
+                margin: 10px 0;
+                max-width: 80%;
+                align-self: flex-start;
             }
             </style>""",
-            unsafe_allow_html=True,
-        )
+                unsafe_allow_html=True,
+            )
 
-        # Submit Button
-        submit_button = st.button("Submit", key="submit_button")
-
-        st.markdown(
-            """<style>
-            .css-2trqyj {
-                background-color: #4CAF50; /* Green color */
-                color: white;
-            }
-            </style>""",
-            unsafe_allow_html=True,
-        )
-        # Collect and display messages on button click
+        # Display messages on form submit
         if submit_button:
             conversation = collect_messages(user_input)
 
@@ -127,13 +167,24 @@ def main():
             for message in conversation:
                 if message["role"] == "user":
                     st.markdown(
-                        f"**User:** {message['content']}", unsafe_allow_html=True
+                        f'<div class="user-message">User: {message["content"]}</div>',
+                        unsafe_allow_html=True,
                     )
                 elif message["role"] == "assistant":
                     st.markdown(
-                        f"**Assistant:** {message['content']}", unsafe_allow_html=True
+                        f'<div class="assistant-message">Assistant: {message["content"]}</div>',
+                        unsafe_allow_html=True,
                     )
 
+        hide_default_format = """
+                <style>
+                footer {visibility: hidden;}
+                </style>
+                """
+        st.markdown(hide_default_format, unsafe_allow_html=True)
+
+
+# MainMenu {visibility: hidden; }
 
 if __name__ == "__main__":
     main()
